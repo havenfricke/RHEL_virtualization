@@ -83,6 +83,9 @@ sudo virt-install \
 --graphics vnc
 ```
 
+### RHEL comes with git
+- to configure git: `git config --global user.name "Firstname Lastname"`
+- to configure: `git config --global user.email "your.email@example.com"`
 
 ### MySQL Install
 - `sudo dnf install mysql8.4-server` (or latest version)
