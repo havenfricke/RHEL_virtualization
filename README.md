@@ -50,21 +50,21 @@ Note: If the "Virtual Machines" tab is missing, ensure cockpit-machines was inst
 
 The Cockpit web interface is the most visual way to manage VMs. Once logged in at https://<server-ip>:9090:
 
-    Click Virtual Machines in the left sidebar.
+- Click Virtual Machines in the left sidebar.
 
-    Select Create VM.
+- Select Create VM.
 
-    Name: Enter a unique identifier for the VM.
+- Name: Enter a unique identifier for the VM.
 
-    Installation Type: Choose "Local Install Media" (ISO), "URL," or "Cloud Image."
+- Installation Type: Choose "Local Install Media" (ISO), "URL," or "Cloud Image."
 
-    Operating System: Select the OS type (this optimizes hardware settings).
+- Operating System: Select the OS type (this optimizes hardware settings).
 
-    Storage: Allocate disk space (e.g., 20 GiB).
+- Storage: Allocate disk space (e.g., 20 GiB).
 
-    Memory: Set the RAM (e.g., 2048 MiB).
+- Memory: Set the RAM (e.g., 2048 MiB).
 
-    Click Create. The VM will appear in the list where you can start it and access the VNC console.
+- Click Create. The VM will appear in the list where you can start it and access the VNC console.
 
 
 ### Creating a VM via virt-install (CLI)
