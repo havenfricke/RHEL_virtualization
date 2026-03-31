@@ -6,15 +6,18 @@
 - `lscpu | grep Virtualization`
 - If "VT-x" (Intel) or AMD-V (AMD) returned, virtualization is supported 
 
+*Check into KVM hypervisor and make sure it is here in these instructions*
 
 ### Install Virtualization Packages
-
 - Install the core virtualization group with: `sudo dnf groupinstall "Virtualization Host" -y`
 - Install additional managment tools: `sudo dnf virt-install virt-viewer -y`
 
+OR
+
+- `sudo dnf install qemu-kvm libvirt virt-install virt-viewer`
+
 
 ### Install Cockpit and VM Module
-
 - `sudo dnf install cockpit-machines -y`
 
 
@@ -70,6 +73,7 @@ The Cockpit web interface is the most visual way to manage VMs. Once logged in a
 ### Creating a VM via virt-install (CLI)
 
 The CLI is preferred for automation and specific hardware passthrough. Use the following template for a standard RHEL-based VM:
+(Needs more documentation)
 
 ```Bash
 sudo virt-install \
@@ -78,17 +82,158 @@ sudo virt-install \
 --memory 2048 \
 --disk path=/var/lib/libvirt/images/rhel-guest.qcow2,size=20 \
 --network network=default \
---os-variant rhel9.0 \
+--os-variant rhel10.0 \
 --cdrom /path/to/your/rhel-installer.iso \
 --graphics vnc
 ```
 
-### RHEL comes with git
-- to configure git: `git config --global user.name "Firstname Lastname"`
-- to configure: `git config --global user.email "your.email@example.com"`
+**NOTE: Everything after this is done inside the virtual machine instance**
+
 
 ### MySQL Install
 - `sudo dnf install mysql8.4-server` (or latest version)
+
+
+### MySQL Startup and Enable
+- `sudo systemctl enable mysqld`
+
+
+### MySQL Secure Setup
+- `sudo mysql_secure_installation`
+
+
+### MySQL Shell Login (USE THIS TO RUN SQL COMMANDS)
+- `sudo mysql -u root -p`
+
+
+### Create Database and Server Access
+```SQL
+CREATE DATABASE mainDB;
+CREATE USER 'server-user'@'localhost' IDENTIFIED BY 'your_strong_password';
+GRANT ALL PRIVILEGES ON my_app_db.* TO 'server-user'@'localhost';
+FLUSH PRIVILEGES;
+EXIT;
+```
+
+### Drop database and created user (reverse above action)
+```SQL
+DROP USER 'app_user'@'127.0.0.1';
+DROP DATABASE mainDB;`
+```
+
+
+### Use Database
+- `USE db_name;`
+
+
+### Enable Security (Can Connect to True (1))
+-`sudo setsebool -P httpd_can_network_connect_db 1`
+
+
+### RHEL comes with git
+- to configure git: `git config --global user.name "Firstname Lastname"`
+- to configure: `git config --global user.email "your.email@example.com"`
+- to clone reposotories: `cd` into desired directory then: `git clone https://github.com/username/repository-name.git`
+- to open in VS code: `code .`
+
+
+### Install nginx
+- `sudo dnf install -y nginx`
+- `sudo systemctl enable --now nginx`
+
+
+### Create Self-signed cert
+```bash
+sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+  -keyout /etc/pki/tls/private/nginx-selfsigned.key \
+  -out /etc/pki/tls/certs/nginx-selfsigned.crt \
+  -subj "/CN=127.0.0.1"
+```
+
+
+### Configure the reverse proxy
+- `sudo vi /etc/nginx/conf.d/api.conf`
+
+
+```Nginx
+server {
+    listen 443 ssl;
+    server_name 127.0.0.1;
+
+    ssl_certificate /etc/pki/tls/certs/nginx-selfsigned.crt;
+    ssl_certificate_key /etc/pki/tls/private/nginx-selfsigned.key;
+
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+
+    location / {
+        proxy_pass https://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+- To save: esc then type :wq
+- To quit: esc then type :q
+
+
+### Adjust SELinux Policies
+- `sudo setsebool -P httpd_can_network_connect 1`
+
+
+### Test nginx config, Open Firewall, and Restart Nginx
+- `sudo nginx -t`
+- `sudo systemctl restart nginx`
+- `sudo firewall-cmd --permanent --add-service=https`
+- `sudo firewall-cmd --reload`
+
+
+### Configure the DB layer of express.ts server
+- NOTE: Use .env
+
+
+```TypeScript
+import mysql from 'mysql2/promise';
+
+const pool = mysql.createPool({
+  host: '127.0.0.1' || 'localhost', // Forces local loopback
+  user: 'app_user',
+  password: 'StrongPassword123!',
+  database: 'app_db',
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
+});
+
+export default pool;
+```
+
+*NOTE: In TS Server change RouteParams and Example Model id to Number Type*
+
+
+### Before Installing Node.js
+- Update SSL: `sudo dnf update -y openssl`
+
+
+### Install Node.js
+- `sudo dnf install nodejs -y`
+- Verify node.js install: `node -v `
+- Verify node package manager install: `npm -v`
+
+
+### Build the TS Server
+- `npm run build` (npx tsc with package.json)
+
+
+### Install PM2 and run server
+- `sudo npm install -g pm2`
+- `pm2 start dist/app.js --name "ts-api"`
+- `pm2 save`
+
 
 ### Offline Token
 eyJhbGciOiJIUzUxMiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICI0NzQzYTkzMC03YmJiLTRkZGQtOTgzMS00ODcxNGRlZDc0YjUifQ.eyJpYXQiOjE3NzM4OTYwNjMsImp0aSI6ImQ1NTQ0MTAwLTQ3MGItNGY3Ni1hY2M3LTRiNGE2ODhmNzYyNiIsImlzcyI6Imh0dHBzOi8vc3NvLnJlZGhhdC5jb20vYXV0aC9yZWFsbXMvcmVkaGF0LWV4dGVybmFsIiwiYXVkIjoiaHR0cHM6Ly9zc28ucmVkaGF0LmNvbS9hdXRoL3JlYWxtcy9yZWRoYXQtZXh0ZXJuYWwiLCJzdWIiOiJmOjUyOGQ3NmZmLWY3MDgtNDNlZC04Y2Q1LWZlMTZmNGZlMGNlNjpoYXZlbmZyaWNrZUB1LmJvaXNlc3RhdGUuZWR1IiwidHlwIjoiT2ZmbGluZSIsImF6cCI6InJoc20tYXBpIiwic2lkIjoiYWM4NWViMDItMWE2MC00YjUyLTkxYzAtNTE0MjhiOTM2NmQ3Iiwic2NvcGUiOiJiYXNpYyByb2xlcyB3ZWItb3JpZ2lucyBjbGllbnRfdHlwZS5wcmVfa2MyNSBvZmZsaW5lX2FjY2VzcyJ9.vUr1dpF7cO-c60cCN3EBGQxGOHacM2Fz8qeue7ulujFNYNHCICvrBrCQ0H-zEQOTx8SnKe79llMHfZk2rQNVUw
