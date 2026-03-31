@@ -6,7 +6,6 @@
 - `lscpu | grep Virtualization`
 - If "VT-x" (Intel) or AMD-V (AMD) returned, virtualization is supported 
 
-*Check into KVM hypervisor and make sure it is here in these instructions*
 
 ### Install Virtualization Packages
 - Install the core virtualization group with: `sudo dnf groupinstall "Virtualization Host" -y`
@@ -26,7 +25,7 @@ OR
 - Start and enable libvirt: `sudo systemctl enable --now libvirtd`
 - Start and enable Cockpit: `sudo systemctl enable --now cockpit.socket`
 
-Cockpit uses port 9090
+*Cockpit uses port 9090 (127.0.0.1:9090)*
 
 - Open firewall for cockpit: `sudo firewall-cmd --add-service=cockpit --permanent` 
 - Reload firewall `sudo firewall-cmd --reload`
@@ -212,7 +211,7 @@ const pool = mysql.createPool({
 export default pool;
 ```
 
-*NOTE: In TS Server change RouteParams and Example Model id to Number Type*
+*NOTE: Server id type is Number or int*
 
 
 ### Before Installing Node.js
