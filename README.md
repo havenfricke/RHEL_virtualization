@@ -112,7 +112,7 @@ sudo virt-install \
 ```SQL
 CREATE DATABASE mainDB;
 CREATE USER 'server-user'@'localhost' IDENTIFIED BY 'your_strong_password';
-GRANT ALL PRIVILEGES ON my_app_db.* TO 'server-user'@'localhost';
+GRANT ALL PRIVILEGES ON mainDB.* TO 'server-user'@'localhost';
 FLUSH PRIVILEGES;
 EXIT;
 ```
