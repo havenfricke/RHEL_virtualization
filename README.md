@@ -93,12 +93,15 @@ sudo virt-install \
 - `sudo dnf install mysql8.4-server` (or latest version)
 
 
-### MySQL Startup and Enable
+### MySQL Enable
 - `sudo systemctl enable mysqld`
 
+### MySQL Start
+- `sudo systemctl start mysqld`
 
 ### MySQL Secure Setup
 - `sudo mysql_secure_installation`
+- This will prompt the user for configurations. Complete the setup and installation before the next step.
 
 
 ### MySQL Shell Login (USE THIS TO RUN SQL COMMANDS)
@@ -128,6 +131,8 @@ DROP DATABASE mainDB;`
 ### Enable Security (Can Connect to True (1))
 -`sudo setsebool -P httpd_can_network_connect_db 1`
 
+### Before Installing Git
+- Update SSL: `sudo dnf update -y openssl`
 
 ### RHEL comes with git
 - to configure git: `git config --global user.name "Firstname Lastname"`
