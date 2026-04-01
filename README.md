@@ -134,6 +134,8 @@ DROP DATABASE mainDB;`
 ### Before Installing Git
 - Update SSL: `sudo dnf update -y openssl`
 
+*The following git commands may prompt you to install git. If so, install it.*
+
 ### RHEL comes with git
 - to configure git: `git config --global user.name "Firstname Lastname"`
 - to configure: `git config --global user.email "your.email@example.com"`
