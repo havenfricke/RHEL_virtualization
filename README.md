@@ -137,24 +137,7 @@ DROP DATABASE mainDB;`
 - to clone reposotories: `cd` into desired directory then: `git clone https://github.com/username/repository-name.git`
 - to open in VS code: `code .`
 
-### Configure the DB layer of express.ts server
-- NOTE: Use .env
-
-```TypeScript
-import mysql from 'mysql2/promise';
-
-const pool = mysql.createPool({
-  host: '127.0.0.1' || 'localhost', // Forces local loopback
-  user: 'app_user',
-  password: 'StrongPassword123!',
-  database: 'app_db',
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0
-});
-
-export default pool;
-```
+### Configure the DB layer of express.ts server via
 
 ```Python
 import os
@@ -240,9 +223,18 @@ sudo firewall-cmd --reload`
 - `sudo vim /etc/nginx/nginx.conf`
 
 ```Nginx
+# Define the pool of backend servers
+upstream fastapi_cluster {
+    server 127.0.0.1:8000;
+    server 127.0.0.1:8001;
+    server 127.0.0.1:8002;
+    server 127.0.0.1:8003;
+}
+
 server {
     listen 80;
     server_name yourdomain.com;
+    
     # Redirect all HTTP requests to HTTPS
     return 301 https://$server_name$request_uri;
 }
@@ -256,12 +248,18 @@ server {
     ssl_certificate_key /etc/letsencrypt/live/yourdomain.com/privkey.pem;
 
     location / {
-        proxy_pass http://localhost:8000; # PM2 app port
+        # Direct traffic to the upstream block named 'fastapi_cluster'
+        proxy_pass http://fastapi_cluster;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
         proxy_set_header Host $host;
         proxy_cache_bypass $http_upgrade;
+        
+        # Required headers for FastAPI/Uvicorn to accurately identify the client IP and HTTPS scheme
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
     }
 }
 ```
@@ -275,28 +273,30 @@ server {
 - `sudo nginx -t`
 - `sudo systemctl restart nginx`
 
-### To load balance pm2 instances
-- Scale to a Specific Numbe: `pm2 start app.js -i 4`
-- Or scale to Maximum Capacity `pm2 start app.js -i max`
+### To load balance pm2 instances and match nginx config
+```Bash
+for port in {8000..8003}; do
+  pm2 start "python3 -m uvicorn main:app --host 127.0.0.1 --port $port" --name "my-api-$port";
+done
+```
+### Write the current process configuration to a dump file that the PM2 daemon will read upon the next boot
+- `pm2 startup`generates a custom command in the terminal output. 
+- Copy and paste that specific output into the terminal and execute it to register PM2
+- Once instances are online and running: `pm2 save` writes process configuration to file PM2 daemon will read next boot
 
 ### How PM2 and Nginx Work Together
-When using Nginx as a reverse proxy, Nginx still only points to http://localhost:3000. You do not need to change your Nginx configuration.
+When using Nginx as a reverse proxy with multiple Python instances, Nginx must be configured with an upstream block that points to the specific local ports assigned to each PM2 instance (e.g., 8000, 8001, 8002).
 
-- **Nginx**: Receives the public HTTPS request and passes it to port 3000.
+**Nginx**: Receives the public HTTPS request and acts as a load balancer, distributing traffic across the defined backend ports in the upstream pool.
 
-- **PM2 Master**: Listens on port 3000 and "shares" that port across all clustered instances.
+**PM2**: Operates in fork mode, managing completely separate and independent Python processes rather than sharing a single port.
 
-- **Instances**: Each worker process handles the request independently.
+**Instances**: Each Uvicorn worker process is explicitly bound to its own unique port and handles the routed requests independently.
 
 ### Check pm2 status
 - Check Status: `pm2 list` (You will see multiple rows for the same app name).
-
-### Live scaling with pm2
-- `pm2 scale myapp +2` Adds two more instances
-- `pm2 scale myapp -2`  Subtracts two less instance
+- Monitor resources: `pm2 monit` to ensure instances aren't competing for memory.
 
 ### Important considerations
-
 - **Statelessness**: Since requests are distributed, you cannot store user sessions in local memory (variables). Use a database for session management.
 - **Port Sharing**: Do not try to assign different ports to different instances. PM2 handles the port sharing internally on the single port your app is configured to use (e.g., 3000).
-- **CPU Overhead**: RHEL 10 is efficient, but monitor your resources with `pm2 monit` to ensure instances aren't competing for memory.
