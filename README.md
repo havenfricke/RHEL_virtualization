@@ -137,7 +137,7 @@ DROP DATABASE mainDB;`
 - to clone reposotories: `cd` into desired directory then: `git clone https://github.com/username/repository-name.git`
 - to open in VS code: `code .`
 
-### Configure the DB layer of express.ts server via
+### Configure the DB layer of [python_webserver](https://github.com/havenfricke/python_webserver) server via
 
 ```Python
 import os
