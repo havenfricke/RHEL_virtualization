@@ -165,12 +165,9 @@ engine = create_async_engine(DB_URL, pool_pre_ping=True)
 - Verify node.js install: `node -v `
 - Verify node package manager install: `npm -v`
 
-### Build the TS Server
-- `npm run build` (npx tsc with package.json)
-
 ### Install PM2 and run server
 - `sudo npm install -g pm2`
-- `pm2 start dist/app.js --name "ts-api"` or `pm2 start main.py --name "py-api"`
+- `pm2 start main.py --name "py-api"`
 - `pm2 save`
 
 
@@ -263,8 +260,8 @@ server {
     }
 }
 ```
-- To quit and save: esc or ctrl + c then type :wq
-- To quit without save: esc or ctrl + c then type :q
+- To quit and save: esc or ctrl + c then type `:wq` (write-quit)
+- To quit without save: esc or ctrl + c then type `:q` (quit)
 
 
 ### Open Firewall, Test nginx config, and Restart Nginx
@@ -274,6 +271,9 @@ server {
 - `sudo systemctl restart nginx`
 
 ### To load balance pm2 instances and match nginx config
+- Match the port range in nginx configurations to line `for port in {80XX..80XX}; do`
+- **NOTE:** Baseline memory resource consumption for [python_webserver](https://github.com/havenfricke/python_webserver) is 70mb/instance. Testing instance deployment iterations against available resource is a good idea.
+
 ```Bash
 for port in {8000..8003}; do
   pm2 start "python3 -m uvicorn main:app --host 127.0.0.1 --port $port" --name "my-api-$port";
